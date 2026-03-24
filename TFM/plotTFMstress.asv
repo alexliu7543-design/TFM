@@ -1,0 +1,31 @@
+clear; clc;
+
+%% 路径设置
+Dir = 'D:\OneDrive - HKUST Connect\experiment\T250608_LittleGelTest\T250608__Relaxation_Strain5\Output\';
+% out_dir = 'D:\OneDrive - HKUST Connect\experiment\T250521_TFM_HierarchicalRelax\T250519_Relaxation\T250519_Dow_Ratio1_Phi60_Relaxation_Strain2\Output\mappx\';
+% mkdir(out_dir);
+
+%% 获取并加载所有.mat文件
+startFrame = 6;
+
+factor = 1;
+for k = ref+1:102
+    % 完整路径加载
+    data = load([Dir, 'sx_', num2str(k), '.mat']);
+    sx = data.sx;
+    stress(k-ref) = mean(sx(sx~=0));
+    t(k-ref) = k-ref;
+ 
+end
+
+%% 5. 绘制应力-时间曲线
+figure;
+plot(t, stress, 'b-o', 'LineWidth', 1.5, 'MarkerSize', 6);
+xlabel('时间 (s)');
+ylabel('平均应力 (Pa)');
+title('TFM应力弛豫曲线');
+grid on;
+set(gca, 'FontSize', 12);
+
+% %% 6. 可选：保存计算结果
+% save('processed_stress.mat', 'time', 'stress');

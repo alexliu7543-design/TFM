@@ -1,0 +1,72 @@
+parpool ('local',8)
+BaseDir = 'D:\OneDrive - HKUST Connect\experiment\T240930_BSM\code\code\';
+addpath(BaseDir);
+tic
+
+dir     = 'D:\OneDrive - HKUST Connect\experiment\T250608_LittleGelTest\T250608__Relaxation_Strain5\Output\';
+out_dir = 'D:\OneDrive - HKUST Connect\experiment\T250608_LittleGelTest\T250608__Relaxation_Strain5\Output1\mappx\';
+mkdir(out_dir);
+Ref = 6;
+% Load reference frame (k=6)
+ref_sx = getfield(load([dir,'sx_',num2str(Ref),'.mat']),char(fieldnames(load([dir,'sx_',num2str(Ref),'.mat']))));
+ref_X = getfield(load([dir,'X_',num2str(Ref),'.mat']),char(fieldnames(load([dir,'X_',num2str(Ref),'.mat']))));
+ref_Y = getfield(load([dir,'Y_',num2str(Ref),'.mat']),char(fieldnames(load([dir,'Y_',num2str(Ref),'.mat']))));
+ref_size = size(ref_sx);
+
+parfor k= 6:102
+    try
+        % Load current frame
+        sx = getfield(load([dir,'sx_',num2str(k),'.mat']),char(fieldnames(load([dir,'sx_',num2str(k),'.mat']))));
+        X = getfield(load([dir,'X_',num2str(k),'.mat']),char(fieldnames(load([dir,'X_',num2str(k),'.mat']))));
+        Y = getfield(load([dir,'Y_',num2str(k),'.mat']),char(fieldnames(load([dir,'Y_',num2str(k),'.mat']))));
+        
+        % Check and adjust sizes if needed
+        current_size = size(sx);
+        if ~isequal(current_size, ref_size)
+            fprintf('Resizing frame %d from [%d %d] to match reference [%d %d]\n',...
+                    k, current_size(1), current_size(2), ref_size(1), ref_size(2));
+            
+            % Resize current frame to match reference size using interpolation
+            sx = imresize(sx, ref_size, 'bilinear');
+            X = imresize(X, ref_size, 'bilinear');
+            Y = imresize(Y, ref_size, 'bilinear');
+        end
+        
+        % Calculate relative intensity (current frame minus reference frame)
+        relative_sx = sx - ref_sx;
+        
+        % Create figure with better visibility
+        fig = figure('visible', 'off');
+        imagesc(X(1,:)*3.1609, Y(:,1)*3.1609, relative_sx);
+        colorbar;
+        colormap('jet');
+        set(gca, 'clim', [-30 10])
+        % % Auto-adjust color scale based on data range
+        % data_range = max(abs(relative_sx(:)));
+        % if data_range > 0
+        %     set(gca, 'clim', [-data_range data_range]);
+        % else
+        %     set(gca, 'clim', [-1 1]); % fallback range
+        % end
+        
+        axis([0 880*5 0 660*5]);
+        set(gca,'fontsize',20,'Fontname','Times New Roman')
+        xticks([0 1000 2000 3000 4000]);
+        yticks([0 1000 2000 3000]);
+        ylabel('y (\mum)','fontsize',25,'Fontname','Times New Roman','linewidth',2);
+        xlabel('x (\mum)','fontsize',25,'Fontname','Times New Roman','linewidth',2);
+        set(gca,'GridLineStyle',':','GridColor','r','GridAlpha',0.5,'linewidth',2)
+        set(gca,'fontsize',22,'TickLabelInterpreter','latex')
+        text(4420,-160,'$\rm\Delta\sigma_{zx}\,\rm(Pa)$','Interpreter','latex','FontSize',22,'linewidth',2,'rotation',0)
+        
+        set(fig,'position',[600,200,800,600]);
+        saveas(fig,[out_dir,'relative_',num2str(k),'.bmp']);
+        close(fig);
+        
+    catch ME
+        fprintf('Error processing frame %d: %s\n', k, ME.message);
+    end
+end
+
+delete(gcp('nocreate'))
+toc
